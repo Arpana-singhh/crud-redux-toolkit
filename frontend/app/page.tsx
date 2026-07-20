@@ -1,36 +1,42 @@
 "use client";
 
-import { useState } from "react";
-
-type Task = {
-  taskId: string;
-  taskName: string;
-  completed: boolean;
-};
-
-const initialTasks: Task[] = [
-  { taskId: "1", taskName: "Buy groceries", completed: false },
-  { taskId: "2", taskName: "Finish redux toolkit setup", completed: true },
-  { taskId: "3", taskName: "Design the to-do card UI", completed: false },
-];
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import {
+  fetchTasks,
+  addTask,
+  editTask,
+  removeTask,
+} from "./store/features/task/taskSlice";
+import type { Task } from "./service/api/task.service";
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const dispatch = useAppDispatch();
+  const {tasks: fetchedTasks, loading, error} = useAppSelector((state) => state.task);
+
+  // Local copy so Add/Edit/Delete stay interactive for now.
+  // Step 7 replaces these with real create/update/delete thunks.
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [taskName, setTaskName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
+  useEffect(() => {
+    dispatch(fetchTasks());
+  }, [dispatch]);
+
+  useEffect(() => {
+    setTasks(fetchedTasks);
+  }, [fetchedTasks]);
+
   const handleAdd = () => {
     if (!taskName.trim()) return;
-    setTasks((prev) => [
-      ...prev,
-      { taskId: crypto.randomUUID(), taskName, completed: false },
-    ]);
+    dispatch(addTask({ taskName }));
     setTaskName("");
   };
 
   const handleDelete = (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    dispatch(removeTask(taskId));
   };
 
   const startEdit = (task: Task) => {
@@ -45,20 +51,12 @@ export default function Home() {
 
   const saveEdit = (taskId: string) => {
     if (!editingName.trim()) return;
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.taskId === taskId ? { ...t, taskName: editingName } : t
-      )
-    );
+    dispatch(editTask({ id: taskId, taskName: editingName }));
     cancelEdit();
   };
 
-  const toggleCompleted = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.taskId === taskId ? { ...t, completed: !t.completed } : t
-      )
-    );
+  const toggleCompleted = (task: Task) => {
+    dispatch(editTask({ id: task.taskId, completed: !task.completed }));
   };
 
   return (
@@ -86,7 +84,19 @@ export default function Home() {
         </div>
 
         <ul className="flex flex-col gap-1 px-3 pb-4">
-          {tasks.length === 0 && (
+          {loading && (
+            <li className="px-3 py-6 text-center text-sm text-foreground/50">
+              Loading tasks...
+            </li>
+          )}
+
+          {!loading && error && (
+            <li className="px-3 py-6 text-center text-sm text-red-600">
+              {error}
+            </li>
+          )}
+
+          {!loading && !error && tasks.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-foreground/50">
               No tasks yet. Add one above.
             </li>
@@ -95,7 +105,7 @@ export default function Home() {
           {tasks.map((task) => (
             <li
               key={task.taskId}
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               {editingId === task.taskId ? (
                 <>
@@ -130,7 +140,7 @@ export default function Home() {
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggleCompleted(task.taskId)}
+                    onChange={() => toggleCompleted(task)}
                     className="h-4 w-4 shrink-0 accent-pink-600"
                   />
                   <span
@@ -145,14 +155,14 @@ export default function Home() {
                   <button
                     onClick={() => startEdit(task)}
                     aria-label="Edit task"
-                    className="text-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    className="text-foreground/40 transition-colors hover:text-foreground"
                   >
                     <EditIcon />
                   </button>
                   <button
                     onClick={() => handleDelete(task.taskId)}
                     aria-label="Delete task"
-                    className="text-foreground/40 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
+                    className="text-foreground/40 transition-colors hover:text-red-600"
                   >
                     <TrashIcon />
                   </button>

@@ -4,18 +4,15 @@ import apiRoutes from "@/config/apiRoutes";
 export type Task = {
   taskId: string;
   taskName: string;
-  taskDetail?: string;
   completed: boolean;
 };
 
 type CreateTaskPayload = {
   taskName: string;
-  taskDetail?: string;
 };
 
 type UpdateTaskPayload = {
   taskName?: string;
-  taskDetail?: string;
   completed?: boolean;
 };
 
@@ -30,8 +27,8 @@ export class TaskService {
     return response.data;
   }
 
-  static async create(taskName: string, taskDetail?: string): Promise<Task> {
-    const payload: CreateTaskPayload = { taskName, taskDetail };
+  static async create(taskName: string): Promise<Task> {
+    const payload: CreateTaskPayload = { taskName };
 
     const response = await apiClient.post<Task>(apiRoutes.task.create, payload);
     return response.data;

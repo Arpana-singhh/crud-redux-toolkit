@@ -10,13 +10,13 @@ export const getTask = async(req, res)=>{
 }
 
 export const createTask = async(req, res)=>{
-    const {taskName,  taskDetail} = req.body;
+    const {taskName} = req.body;
 
     if(!taskName){
         return res.status(400).json({ message: "taskName is required" })
     }
     try {
-        const tasks = await taskModel.create({taskName,  taskDetail})
+        const tasks = await taskModel.create({taskName})
         res.status(201).json(tasks)
     } catch (error) {
         res.status(500).json({ message: error.message })
@@ -25,12 +25,12 @@ export const createTask = async(req, res)=>{
 
 export const updateTask = async(req, res)=>{
     const { taskID } = req.params;
-    const { taskName, taskDetail, completed } = req.body;
+    const { taskName, completed } = req.body;
 
     try {
         const task = await taskModel.findByIdAndUpdate(
             taskID,
-            { taskName, taskDetail, completed },
+            { taskName, completed },
             { new: true, runValidators: true }
         )
 

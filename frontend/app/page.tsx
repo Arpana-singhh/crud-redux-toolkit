@@ -1,42 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "./store/hooks";
+import { useState } from "react";
 import {
-  fetchTasks,
-  addTask,
-  editTask,
-  removeTask,
-} from "./store/features/task/taskSlice";
+  useTasksQuery,
+  useAddTask,
+  useEditTask,
+  useRemoveTask,
+} from "./hooks/useTasks";
 import type { Task } from "./service/api/task.service";
 
 export default function Home() {
-  const dispatch = useAppDispatch();
-  const {tasks: fetchedTasks, loading, error} = useAppSelector((state) => state.task);
+  const { data: tasks = [], isLoading, error } = useTasksQuery();
+  const addTask = useAddTask();
+  const editTask = useEditTask();
+  const removeTask = useRemoveTask();
 
-  // Local copy so Add/Edit/Delete stay interactive for now.
-  // Step 7 replaces these with real create/update/delete thunks.
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [taskName, setTaskName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
-  useEffect(() => {
-    dispatch(fetchTasks());
-  }, [dispatch]);
-
-  useEffect(() => {
-    setTasks(fetchedTasks);
-  }, [fetchedTasks]);
-
   const handleAdd = () => {
     if (!taskName.trim()) return;
-    dispatch(addTask({ taskName }));
+    addTask.mutate(taskName);
     setTaskName("");
   };
 
   const handleDelete = (taskId: string) => {
-    dispatch(removeTask(taskId));
+    removeTask.mutate(taskId);
   };
 
   const startEdit = (task: Task) => {
@@ -51,12 +41,12 @@ export default function Home() {
 
   const saveEdit = (taskId: string) => {
     if (!editingName.trim()) return;
-    dispatch(editTask({ id: taskId, taskName: editingName }));
+    editTask.mutate({ id: taskId, taskName: editingName });
     cancelEdit();
   };
 
   const toggleCompleted = (task: Task) => {
-    dispatch(editTask({ id: task.taskId, completed: !task.completed }));
+    editTask.mutate({ id: task.taskId, completed: !task.completed });
   };
 
   return (
@@ -84,19 +74,19 @@ export default function Home() {
         </div>
 
         <ul className="flex flex-col gap-1 px-3 pb-4">
-          {loading && (
+          {isLoading && (
             <li className="px-3 py-6 text-center text-sm text-foreground/50">
               Loading tasks...
             </li>
           )}
 
-          {!loading && error && (
+          {!isLoading && error && (
             <li className="px-3 py-6 text-center text-sm text-red-600">
-              {error}
+              {error.message}
             </li>
           )}
 
-          {!loading && !error && tasks.length === 0 && (
+          {!isLoading && !error && tasks.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-foreground/50">
               No tasks yet. Add one above.
             </li>
